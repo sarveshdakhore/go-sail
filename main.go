@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/TejasGhatte/go-sail/cmd"
@@ -28,7 +29,7 @@ func main() {
 
 	go func() {
 		<-sigs
-		cleanup()
+		cleanup(cmd.ProjectName)
 		cancel()
 		os.Exit(1)
 	}()
@@ -42,6 +43,15 @@ func main() {
 	}
 }
 
-func cleanup() {
+func cleanup(projectName string) {
 	fmt.Println("\nReceived interrupt signal, exiting...")
+	if projectName != "" {
+		currentDir, _ := os.Getwd()
+		projectDir := filepath.Join(currentDir, projectName)
+		if err := os.RemoveAll(projectDir); err != nil {
+			fmt.Printf("Failed to remove project directory %s: %v\n", projectDir, err)
+		} else {
+			fmt.Printf("Successfully removed project directory %s\n", projectDir)
+		}
+	}
 }

@@ -58,7 +58,7 @@ func CreateProject(ctx context.Context, name string) error {
 	s.Start()
 	defer s.Stop()
 
-	err = PopulateDirectory(options)
+	err = PopulateDirectory(ctx, options)
 	if err != nil {
 		return err
 	}
@@ -66,30 +66,35 @@ func CreateProject(ctx context.Context, name string) error {
 	return nil
 }
 
-func PopulateDirectory(ctx *models.Options) error {
-	if err := GitClone(ctx.ProjectName, ctx.Framework, initializers.Config.Repositories[ctx.Framework]); err != nil {
+func PopulateDirectory(ctx context.Context, options *models.Options) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	if err := GitClone(ctx, options.ProjectName, options.Framework, initializers.Config.Repositories[options.Framework]); err != nil {
 		return fmt.Errorf("error cloning repository: %v", err)
 	}
 
 	currentDir, _ := os.Getwd()
-	folder := filepath.Join(currentDir, ctx.ProjectName, "initializers")
+	folder := filepath.Join(currentDir, options.ProjectName, "initializers")
 
-	if ctx.Database != "" && ctx.ORM != "" {
-		provider, err := helpers.ProviderFactory(ctx.Database, ctx.ORM)
+	if options.Database != "" && options.ORM != "" {
+		provider, err := helpers.ProviderFactory(options.Database, options.ORM)
 		if err != nil {
 			return fmt.Errorf("error creating database provider: %v", err)
 		}
 
-		err = helpers.GenerateDatabaseFile(folder, provider)
+		err = helpers.GenerateDatabaseFile(ctx, folder, provider)
 		if err != nil {
 			return fmt.Errorf("error generating database file: %v", err)
 		}
 
-		err = helpers.GenerateMigrationFile(folder, provider)
+		err = helpers.GenerateMigrationFile(ctx, folder, provider)
 		if err != nil {
 			return fmt.Errorf("error generating migration file: %v", err)
 		}
-
 	}
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 )
 
 var CreateProjectCommand *cobra.Command
+var ProjectName string
 
 func init() {
 	CreateProjectCommand = &cobra.Command{
@@ -16,9 +17,9 @@ func init() {
 		Short: "Creates a new go project",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			projectName := args[0]
+			ProjectName = args[0]
 			ctx := cmd.Context()
-			if err := scripts.CreateProject(ctx, projectName); err != nil {
+			if err := scripts.CreateProject(ctx, ProjectName); err != nil {
 				if err == errors.ErrInterrupt {
 					fmt.Println("Program Exited: interrupt")
 				} else {

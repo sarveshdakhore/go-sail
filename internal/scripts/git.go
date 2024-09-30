@@ -1,6 +1,7 @@
 package scripts
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -10,7 +11,12 @@ import (
 	"github.com/go-git/go-git/v5"
 )
 
-func GitClone(projectName, templateType, templateURL string) error {
+func GitClone(ctx context.Context, projectName, templateType, templateURL string) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 	if templateType == "" || templateURL == "" {
 		return fmt.Errorf("project template not found")
 	}

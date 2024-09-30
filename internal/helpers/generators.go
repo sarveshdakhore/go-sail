@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,7 +9,13 @@ import (
 )
 
 // GenerateDatabaseFile generates the database initialization file
-func GenerateDatabaseFile(folderPath string, provider Provider) error {
+func GenerateDatabaseFile(ctx context.Context, folderPath string, provider Provider) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	filename := filepath.Join(folderPath, "database.go")
 	tmpl, err := template.New("database").Parse(`
 package initializers
@@ -55,7 +62,13 @@ func ConnectDB(){
 }
 
 // GenerateMigrationFile generates the migration file
-func GenerateMigrationFile(folderPath string, provider Provider) error {
+func GenerateMigrationFile(ctx context.Context, folderPath string, provider Provider) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	filename := filepath.Join(folderPath, "migrations.go")
 	tmpl, err := template.New("migration").Parse(`
 package initializers
