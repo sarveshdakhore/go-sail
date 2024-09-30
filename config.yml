@@ -40,7 +40,7 @@ combinations:
         - gorm.io/driver/mysql
     sqlx:
       dsnTemplate: "%s:%s@tcp(localhost:3306)/%s?parseTime=true"
-      initFunc: "sqlx.Connect("mysql"(dsn)"
+      initFunc: "sqlx.Connect(\"mysql\", dsn)"
   sqlite:
     gorm:
       dsnTemplate: ""

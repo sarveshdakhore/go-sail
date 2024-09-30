@@ -1,23 +1,25 @@
 package initializers
 
 import (
-	"fmt"
+	"log"
 	"os"
+
 	"gopkg.in/yaml.v3"
 
 	"github.com/TejasGhatte/go-sail/internal/models"
-
 )
+
 var Config models.Config
 
-func LoadConfig(filename string){
+func LoadConfig(filename string) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		fmt.Errorf("error reading config file: %w", err)
+		log.Fatalf("error reading config file: %v", err) // Change this line
 	}
 
 	err = yaml.Unmarshal(data, &Config)
 	if err != nil {
-		fmt.Errorf("error parsing config file: %w", err)
+		log.Fatalf("error parsing config file: %v", err) // Change this line
 	}
+	//fmt.Printf("Loaded Config: %+v\n", Config)
 }
