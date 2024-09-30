@@ -4,10 +4,13 @@ go 1.22.3
 
 require github.com/AlecAivazis/survey/v2 v2.3.7
 
+require github.com/fatih/color v1.7.0 // indirect
+
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
+	github.com/briandowns/spinner v1.23.1
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
