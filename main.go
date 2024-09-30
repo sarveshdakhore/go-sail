@@ -19,17 +19,15 @@ var rootCmd = &cobra.Command{
 }
 
 func main() {
-	// Create a context that is canceled on interrupt signal
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Set up signal handling for Ctrl+C
+	// handling ctrl+c
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		<-sigs
-		// Handle the interrupt signal
 		cleanup()
 		cancel()
 		os.Exit(1)
@@ -38,16 +36,12 @@ func main() {
 	initializers.LoadConfig("config.yml")
 	rootCmd.AddCommand(cmd.CreateProjectCommand)
 
-	// Execute the root command with context
 	if err := rootCmd.ExecuteContext(ctx); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
 
-// cleanup function to handle any necessary cleanup before exiting
 func cleanup() {
-	// Perform any necessary cleanup here
-	// For example, you can print a message or close any open resources
 	fmt.Println("\nReceived interrupt signal, exiting...")
 }
