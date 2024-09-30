@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -14,32 +15,34 @@ func GenerateDatabaseFile(folderPath string, provider Provider) error {
 package initializers
 
 import (
-	"fmt"
-	{{range .Imports}}
-	{{.}}
-	{{- end}}
+    "fmt"
+    {{range .Imports}}
+    {{.}}
+    {{- end}}
 )
 
 var DB {{.DBVariable}}
 
 func ConnectDB(){
-	{{.ConnectionCode}}
+    {{.ConnectionCode}}
 }
 `)
 	if err != nil {
-		return 
+		log.Printf("error parsing database template: %v", err)
+		return fmt.Errorf("error parsing database template: %v", err)
 	}
 
 	f, err := os.Create(filename)
 	if err != nil {
-		return 
+		log.Printf("error creating database file: %v", err)
+		return fmt.Errorf("error creating database file: %v", err)
 	}
 	defer f.Close()
 
 	data := struct {
 		Imports        []string
 		ConnectionCode string
-		DBVariable  string
+		DBVariable     string
 	}{
 		Imports:        provider.GetImports(),
 		ConnectionCode: provider.GetConnectionCode(),
@@ -48,7 +51,8 @@ func ConnectDB(){
 
 	err = tmpl.Execute(f, data)
 	if err != nil {
-		return 
+		log.Printf("error executing database template: %v", err)
+		return fmt.Errorf("error executing database template: %v", err)
 	}
 
 	return nil
@@ -61,24 +65,26 @@ func GenerateMigrationFile(folderPath string, provider Provider) error {
 package initializers
 
 import (
-	"fmt"
-	{{range .Imports}}
-	{{.}}
-	{{- end}}
+    "fmt"
+    {{range .Imports}}
+    {{.}}
+    {{- end}}
 )
 
 func DBMigrate() error {
-	{{.MigrationCode}}
-	return nil
+    {{.MigrationCode}}
+    return nil
 }
 `)
 	if err != nil {
-		return 
+		log.Printf("error parsing migration template: %v", err)
+		return fmt.Errorf("error parsing migration template: %v", err)
 	}
 
 	f, err := os.Create(filename)
 	if err != nil {
-		return 
+		log.Printf("error creating migration file: %v", err)
+		return fmt.Errorf("error creating migration file: %v", err)
 	}
 	defer f.Close()
 
@@ -92,7 +98,8 @@ func DBMigrate() error {
 
 	err = tmpl.Execute(f, data)
 	if err != nil {
-		return 
+		log.Printf("error executing migration template: %v", err)
+		return fmt.Errorf("error executing migration template: %v", err)
 	}
 
 	return nil
