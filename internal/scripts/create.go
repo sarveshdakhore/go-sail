@@ -1,11 +1,13 @@
 package scripts
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/TejasGhatte/go-sail/internal/errors"
 	"github.com/TejasGhatte/go-sail/internal/helpers"
 	"github.com/TejasGhatte/go-sail/internal/initializers"
 	"github.com/TejasGhatte/go-sail/internal/models"
@@ -13,13 +15,32 @@ import (
 	"github.com/briandowns/spinner"
 )
 
-func CreateProject(name string) error {
-	framework := prompts.SelectFramework()
-	database := prompts.SelectDatabase()
+func CreateProject(ctx context.Context, name string) error {
+	framework, err := prompts.SelectFramework(ctx)
+	if err != nil {
+		if err == errors.ErrInterrupt {
+			return err
+		}
+		return err
+	}
+
+	database, err := prompts.SelectDatabase(ctx)
+	if err != nil {
+		if err == errors.ErrInterrupt {
+			return err
+		}
+		return err
+	}
 
 	var orm string
 	if database != "" {
-		orm = prompts.SelectORM()
+		orm, err = prompts.SelectORM(ctx)
+		if err != nil {
+			if err == errors.ErrInterrupt {
+				return err
+			}
+			return err
+		}
 	}
 
 	fmt.Println("Generating project with the following options:")
@@ -37,7 +58,7 @@ func CreateProject(name string) error {
 	s.Start()
 	defer s.Stop()
 
-	err := PopulateDirectory(options)
+	err = PopulateDirectory(options)
 	if err != nil {
 		return err
 	}
