@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/TejasGhatte/go-sail/internal/errors"
@@ -70,8 +69,8 @@ func CreateProject(ctx context.Context, name string) error {
 	if err := runGoModTidy(name); err != nil {
 		return fmt.Errorf("failed to run go mod tidy: %v", err)
 	}
-	if err := scanAndDownloadImports(name); err != nil {
-		return fmt.Errorf("failed to download required libraries: %v", err)
+	if err := runGoModVendor(name); err != nil {
+		return fmt.Errorf("failed to run go mod vendor: %v", err)
 	}
 	return nil
 }
@@ -125,49 +124,17 @@ func runGoModTidy(projectName string) error {
 	return nil
 }
 
-func scanAndDownloadImports(projectName string) error {
+func runGoModVendor(projectName string) error {
 	currentDir, _ := os.Getwd()
 	projectDir := filepath.Join(currentDir, projectName)
 
-	// now go list used
-	cmd := exec.Command("go", "list", "-f", `{{ join .Imports "\n" }}`, "./...")
-	cmd.Dir = projectDir
-	output, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("failed to list imports: %v", err)
-	}
-
-	imports := strings.Split(string(output), "\n")
-	uniqueImports := make(map[string]struct{})
-
-	for _, imp := range imports {
-		if imp != "" {
-			uniqueImports[imp] = struct{}{}
-		}
-	}
-
-	// Download required imports
-	for imp := range uniqueImports {
-		if err := runGoGet(projectDir, imp); err != nil {
-			return fmt.Errorf("failed to run go get for import %s: %v", imp, err)
-		}
-	}
-
-	if err := runGoModTidy(projectName); err != nil {
-		return fmt.Errorf("failed to run go mod tidy: %v", err)
-	}
-
-	return nil
-}
-
-func runGoGet(projectDir, importPath string) error {
-	cmd := exec.Command("go", "get", importPath)
+	cmd := exec.Command("go", "mod", "vendor")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("go get command failed for import %s: %v", importPath, err)
+		return fmt.Errorf("go mod vendor command failed: %v", err)
 	}
 
 	return nil
