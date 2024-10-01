@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/TejasGhatte/go-sail/internal/errors"
 	"github.com/TejasGhatte/go-sail/internal/helpers"
 	"github.com/TejasGhatte/go-sail/internal/initializers"
 	"github.com/TejasGhatte/go-sail/internal/models"
@@ -19,17 +18,11 @@ import (
 func CreateProject(ctx context.Context, name string) error {
 	framework, err := prompts.SelectFramework(ctx)
 	if err != nil {
-		if err == errors.ErrInterrupt {
-			return err
-		}
 		return err
 	}
 
 	database, err := prompts.SelectDatabase(ctx)
 	if err != nil {
-		if err == errors.ErrInterrupt {
-			return err
-		}
 		return err
 	}
 
@@ -37,9 +30,6 @@ func CreateProject(ctx context.Context, name string) error {
 	if database != "" {
 		orm, err = prompts.SelectORM(ctx)
 		if err != nil {
-			if err == errors.ErrInterrupt {
-				return err
-			}
 			return err
 		}
 	}
@@ -59,29 +49,19 @@ func CreateProject(ctx context.Context, name string) error {
 	s.Start()
 	defer s.Stop()
 
-	err = PopulateDirectory(ctx, options)
-	if err != nil {
+	if err := PopulateDirectory(ctx, options); err != nil {
 		return err
 	}
 	if err := runGoImports(name); err != nil {
 		return fmt.Errorf("failed to run goimports: %v", err)
 	}
-	if err := runGoModTidy(name); err != nil {
-		return fmt.Errorf("failed to run go mod tidy: %v", err)
-	}
-	if err := runGoModVendor(name); err != nil {
-		return fmt.Errorf("failed to run go mod vendor: %v", err)
+	if err := runGoModCommands(name); err != nil {
+		return fmt.Errorf("failed to run go mod commands: %v", err)
 	}
 	return nil
 }
 
 func PopulateDirectory(ctx context.Context, options *models.Options) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-	}
-
 	if err := GitClone(ctx, options.ProjectName, options.Framework, initializers.Config.Repositories[options.Framework]); err != nil {
 		return fmt.Errorf("error cloning repository: %v", err)
 	}
@@ -95,46 +75,35 @@ func PopulateDirectory(ctx context.Context, options *models.Options) error {
 			return fmt.Errorf("error creating database provider: %v", err)
 		}
 
-		err = helpers.GenerateDatabaseFile(ctx, folder, provider)
-		if err != nil {
+		if err := helpers.GenerateDatabaseFile(ctx, folder, provider); err != nil {
 			return fmt.Errorf("error generating database file: %v", err)
 		}
 
-		err = helpers.GenerateMigrationFile(ctx, folder, provider)
-		if err != nil {
+		if err := helpers.GenerateMigrationFile(ctx, folder, provider); err != nil {
 			return fmt.Errorf("error generating migration file: %v", err)
 		}
 	}
 	return nil
 }
 
-func runGoModTidy(projectName string) error {
+func runGoModCommands(projectName string) error {
 	currentDir, _ := os.Getwd()
 	projectDir := filepath.Join(currentDir, projectName)
 
-	cmd := exec.Command("go", "mod", "tidy")
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("go mod tidy command failed: %v", err)
+	commands := [][]string{
+		{"go", "mod", "tidy"},
+		{"go", "mod", "vendor"},
 	}
 
-	return nil
-}
+	for _, cmdArgs := range commands {
+		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+		cmd.Dir = projectDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 
-func runGoModVendor(projectName string) error {
-	currentDir, _ := os.Getwd()
-	projectDir := filepath.Join(currentDir, projectName)
-
-	cmd := exec.Command("go", "mod", "vendor")
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("go mod vendor command failed: %v", err)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("%s command failed: %v", cmdArgs, err)
+		}
 	}
 
 	return nil
