@@ -42,7 +42,6 @@ func main() {
 		os.Exit(1)
 	}
 }
-
 func cleanup(projectName string) {
 	fmt.Println("\nReceived interrupt signal, exiting...")
 	if projectName != "" {

@@ -3,8 +3,8 @@ package helpers
 import (
 	"fmt"
 
-	"github.com/TejasGhatte/go-sail/internal/models"
 	"github.com/TejasGhatte/go-sail/internal/initializers"
+	"github.com/TejasGhatte/go-sail/internal/models"
 )
 
 // Provider interface defines methods for generating database connection and migration code
@@ -16,9 +16,9 @@ type Provider interface {
 }
 
 type CombinationProvider struct {
-	Database    models.DatabaseConfig
-	ORM         models.ORMConfig
-	Combination models.CombinationConfig
+	Database      models.DatabaseConfig
+	ORM           models.ORMConfig
+	Combination   models.CombinationConfig
 	MigrationCode string
 }
 
@@ -35,15 +35,15 @@ func (cp *CombinationProvider) GetImports() []string {
 }
 
 func (cp *CombinationProvider) GetConnectionCode() string {
-	return  fmt.Sprintf(`
-	var err error
-	dsn := fmt.Sprintf(%q, "your_username", "your_password", "your_database")
-	DB, err = %s
-	if err != nil {
-		fmt.Println("failed to connect to database")
-	}
-	fmt.Println("Connect to database")
-	`, cp.Combination.DSNTemplate, cp.Combination.InitFunc)
+	return fmt.Sprintf(`
+    var err error
+    dsn := fmt.Sprintf(%q, "your_username", "your_password", "your_database")
+    DB, err = %s
+    if err != nil {
+        fmt.Println("failed to connect to database")
+    }
+    fmt.Println("Connect to database")
+    `, cp.Combination.DSNTemplate, cp.Combination.InitFunc)
 }
 
 func (cp *CombinationProvider) GetMigrationCode() string {
@@ -56,16 +56,25 @@ func (cp *CombinationProvider) GetDBVariable() string {
 
 // ProviderFactory creates a provider for a specific database and ORM combination
 func ProviderFactory(database, orm string) (Provider, error) {
-	dbConfig := initializers.Config.Databases[database]
+	dbConfig, dbExists := initializers.Config.Databases[database]
+	if !dbExists {
+		return nil, fmt.Errorf("database configuration for %q not found", database)
+	}
 
-	ormConfig := initializers.Config.ORMs[orm]
+	ormConfig, ormExists := initializers.Config.ORMs[orm]
+	if !ormExists {
+		return nil, fmt.Errorf("ORM configuration for %q not found", orm)
+	}
 
-	combinationConfig := initializers.Config.Combinations[database][orm]
+	combinationConfig, combinationExists := initializers.Config.Combinations[database][orm]
+	if !combinationExists {
+		return nil, fmt.Errorf("combination configuration for database %q and ORM %q not found", database, orm)
+	}
 
 	return &CombinationProvider{
-		Database:    dbConfig,
-		ORM:         ormConfig,
-		Combination: combinationConfig,
+		Database:      dbConfig,
+		ORM:           ormConfig,
+		Combination:   combinationConfig,
 		MigrationCode: initializers.Config.MigrationCode[orm],
 	}, nil
 }
