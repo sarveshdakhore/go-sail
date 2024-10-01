@@ -3,8 +3,6 @@ package scripts
 import (
 	"context"
 	"fmt"
-	"go/parser"
-	"go/token"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -131,14 +129,25 @@ func scanAndDownloadImports(projectName string) error {
 	currentDir, _ := os.Getwd()
 	projectDir := filepath.Join(currentDir, projectName)
 
-	// extract imports first
-	imports, err := extractImports(projectDir)
+	// now go list used
+	cmd := exec.Command("go", "list", "-f", `{{ join .Imports "\n" }}`, "./...")
+	cmd.Dir = projectDir
+	output, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("failed to extract imports: %v", err)
+		return fmt.Errorf("failed to list imports: %v", err)
 	}
 
-	// download required imports
+	imports := strings.Split(string(output), "\n")
+	uniqueImports := make(map[string]struct{})
+
 	for _, imp := range imports {
+		if imp != "" {
+			uniqueImports[imp] = struct{}{}
+		}
+	}
+
+	// Download required imports
+	for imp := range uniqueImports {
 		if err := runGoGet(projectDir, imp); err != nil {
 			return fmt.Errorf("failed to run go get for import %s: %v", imp, err)
 		}
@@ -149,53 +158,6 @@ func scanAndDownloadImports(projectName string) error {
 	}
 
 	return nil
-}
-
-func extractImports(projectDir string) ([]string, error) {
-	var imports []string
-	uniqueImports := make(map[string]struct{})
-
-	err := filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(path, ".go") {
-			fileImports, err := parseImports(path)
-			if err != nil {
-				return err
-			}
-			for _, imp := range fileImports {
-				if _, exists := uniqueImports[imp]; !exists {
-					uniqueImports[imp] = struct{}{}
-					imports = append(imports, imp)
-				}
-			}
-		}
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return imports, nil
-}
-
-func parseImports(filePath string) ([]string, error) {
-	var imports []string
-
-	fileSet := token.NewFileSet()
-	node, err := parser.ParseFile(fileSet, filePath, nil, parser.ImportsOnly)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, imp := range node.Imports {
-		importPath := strings.Trim(imp.Path.Value, `"`)
-		imports = append(imports, importPath)
-	}
-
-	return imports, nil
 }
 
 func runGoGet(projectDir, importPath string) error {
@@ -210,6 +172,7 @@ func runGoGet(projectDir, importPath string) error {
 
 	return nil
 }
+
 func runGoImports(projectDir string) error {
 	// Run goimports on the entire project directory
 	cmd := exec.Command("goimports", "-w", projectDir)
