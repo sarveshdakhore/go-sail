@@ -76,7 +76,6 @@ func CreateProject(ctx context.Context, name string) error {
 		return fmt.Errorf("failed to download required libraries: %v", err)
 	}
 	return nil
-
 }
 
 func PopulateDirectory(ctx context.Context, options *models.Options) error {
@@ -111,6 +110,7 @@ func PopulateDirectory(ctx context.Context, options *models.Options) error {
 	}
 	return nil
 }
+
 func runGoModTidy(projectName string) error {
 	currentDir, _ := os.Getwd()
 	projectDir := filepath.Join(currentDir, projectName)
@@ -197,6 +197,7 @@ func parseImports(filePath string) ([]string, error) {
 
 	return imports, nil
 }
+
 func runGoGet(projectDir, importPath string) error {
 	cmd := exec.Command("go", "get", importPath)
 	cmd.Dir = projectDir
@@ -209,27 +210,15 @@ func runGoGet(projectDir, importPath string) error {
 
 	return nil
 }
-
 func runGoImports(projectDir string) error {
-	// Find all Go files in the project directory
-	err := filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(path, ".go") {
-			// Run goimports on each Go file
-			cmd := exec.Command("goimports", "-w", path)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				return fmt.Errorf("goimports command failed for file %s: %v", path, err)
-			}
-		}
-		return nil
-	})
+	// Run goimports on the entire project directory
+	cmd := exec.Command("goimports", "-w", projectDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	if err != nil {
-		return fmt.Errorf("failed to run goimports on project: %v", err)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("goimports command failed for directory %s: %v", projectDir, err)
 	}
+
 	return nil
 }
