@@ -66,6 +66,9 @@ func CreateProject(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
+	if err := runGoImports(name); err != nil {
+		return fmt.Errorf("failed to run goimports: %v", err)
+	}
 	if err := runGoModTidy(name); err != nil {
 		return fmt.Errorf("failed to run go mod tidy: %v", err)
 	}
@@ -143,11 +146,6 @@ func scanAndDownloadImports(projectName string) error {
 
 	if err := runGoModTidy(projectName); err != nil {
 		return fmt.Errorf("failed to run go mod tidy: %v", err)
-	}
-
-	// remove unused imports using goimports by formating files
-	if err := runGoImports(projectDir); err != nil {
-		return fmt.Errorf("failed to run goimports: %v", err)
 	}
 
 	return nil
